@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 from __future__ import print_function
 
 import argparse
@@ -9,6 +7,11 @@ import datetime
 import overpass
 import sys
 from string import Template
+
+name_replace = {}
+name_replace['Doktor'] = 'Dr.'
+name_replace['Professor'] = 'Prof.'
+name_replace['Sankt'] = 'St.'
 
 def canonicalName(name):
 	for key, value in name_replace.iteritems():
@@ -194,11 +197,3 @@ def writeOutput(streets, gkz, html):
 	}
 
 	print(templateStr.substitute(substVars))
-
-name_replace = {}
-name_replace['Doktor'] = 'Dr.'
-name_replace['Professor'] = 'Prof.'
-name_replace['Sankt'] = 'St.'
-
-if __name__ == "__main__":
-	main()
