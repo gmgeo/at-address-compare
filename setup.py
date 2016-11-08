@@ -1,9 +1,13 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
-  name = 'ataddrcompare',
-  packages = ['ataddrcompare'], 
+  name = 'at-address-compare',
+  packages = ['ataddrcompare'],
   version = '0.1',
+  entry_points = {
+    'console_scripts': ['ataddrcompare = ataddrcompare.ataddrcompare:main']
+  },
+  install_requires = ['overpass'],
   description = 'Address comparison of OSM data with official open data for Austria.',
   author = 'Michael Glanznig',
   url = 'https://github.com/gmgeo/at-address-compare',

@@ -55,7 +55,7 @@ def main():
 			except (KeyError, IndexError):
 				print('Could not match name to GKZ. Exiting.', file=sys.stderr)
 				sys.exit()
-		except Exception,e:
+		except Exception as e:
 			print('There was an error while querying Overpass API: ' + type(e).__name__ + '. Exiting.', file=sys.stderr)
 			sys.exit()
 
@@ -64,7 +64,7 @@ def main():
 	query = 'area["type"="boundary"]["admin_level"="8"]["ref:at:gkz"="' + str(args.filter) + '"]->.searchArea;(node["addr:housenumber"](area.searchArea);way["addr:housenumber"](area.searchArea););'
 	try:
 		response = api.Get(query, responseformat="json")
-	except Exception,e:
+	except Exception as e:
 		print('There was an error while querying Overpass API: ' + type(e).__name__ + '. Exiting.', file=sys.stderr)
 		sys.exit()
 
