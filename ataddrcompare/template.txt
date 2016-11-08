@@ -1,0 +1,7 @@
+Addresses of GKZ $gkz. Processed at $time.
+
+$detail
+Total: ${total}%
+
+OSM = Copyright (c) OpenStreetMap contributors - ODbL
+GOV = Copyright (c) Österreichisches Adressregister, Stichtagsdaten

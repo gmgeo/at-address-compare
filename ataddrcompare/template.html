@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>AT Address Compare</title>
+        <style type="text/css">
+            body {
+                font-family: sans-serif;
+            }
+            .total {
+                font-weight: bold;
+            }
+            table {
+                border-bottom: 1px solid #ccc;
+                padding-bottom: 30px;
+            }
+            th {
+                text-align: left;
+                background-color: #efefef;
+                padding: 10px;
+            }
+            td {
+                padding: 5px 10px;
+                border-bottom: 1px solid #eee;
+            }
+            tr td:nth-child(2n+2) {
+                width: 8%;
+                text-align: right;
+            }
+            tr td:nth-child(3n+3),
+            tr td:nth-child(4n+4) {
+                width: 35%;
+                text-align: left;
+                line-height: 1.7em;
+            }
+            .c20 {
+                background-color: #edf8e9;
+            }
+            .c40 {
+                background-color: #bae4b3;
+            }
+            .c60 {
+                background-color: #74c476;
+            }
+            .c80 {
+                background-color: #31a354;
+            }
+            .c100 {
+                background-color: #006d2c;
+                color: white;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Addresses of GKZ $gkz. Processed at $time.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Street</th>
+                    <th>% complete</th>
+                    <th>not in OSM</th>
+                    <th>not in GOV</th>
+                </tr>
+            </thead>
+            <tbody>
+                $detail
+            </tbody>
+        </table>
+    </body>
+    <p class="total">Total: ${total}%</p>
+    <p id="abbrev"><sup>*</sup> abbreviated in OSM</p>
+    <p>OSM = Copyright (c) OpenStreetMap contributors - ODbL<br />
+    GOV = Copyright (c) Österreichisches Adressregister, Stichtagsdaten</p>
+</html>
