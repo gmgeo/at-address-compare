@@ -1,6 +1,6 @@
 # Qualitätssicherung für österreichische Adressen
 
-(also available in [English](https://github.com/gmgeo/at-address-compare/blob/masterREADME.md))
+(also available in [English](https://github.com/gmgeo/at-address-compare/blob/master/README.md))
 
 Dieses Python-Package (ataddrcompare) vergleicht österreichische Adressen
 in OpenStreetMap mit den Adressdaten des Bundesamts für Eich- und
