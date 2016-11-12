@@ -15,4 +15,7 @@ setup(
   keywords = ['Austria', 'OSM', 'OpenStreetMap', 'OpenData', 'addresses', 'address', 'compare'],
   license = 'MIT',
   classifiers = [],
+  package_data =  {
+    'ataddrcompare': ['template.txt', 'template.html']
+  }
 )

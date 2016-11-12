@@ -5,6 +5,7 @@ import csv
 import collections
 import datetime
 import overpass
+import pkg_resources
 import sys
 from string import Template
 
@@ -143,11 +144,11 @@ def main():
 
 def writeOutput(streets, gkz, html):
 	if html == False:
-		templateFile = open('template.txt')
+		templateFile = pkg_resources.resource_string(__name__, 'template.txt')
 	else:
-		templateFile = open('template.html')
+		templateFile = pkg_resources.resource_string(__name__, 'template.html')
 
-	templateStr = Template(templateFile.read())
+	templateStr = Template(templateFile)
 
 	detail = ''
 	total = 0
