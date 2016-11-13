@@ -177,6 +177,9 @@ def main():
 	#
 
 	print('Sorting output...', file=sys.stderr)
+	for street in streets:
+		streets[street]['notosm'] = sorted(streets[street]['notosm'])
+		streets[street]['notgov'] = sorted(streets[street]['notgov'])
 	streets = collections.OrderedDict(sorted(streets.items()))
 	writeOutput(streets, gkz, args.html)
 	print('Done.', file=sys.stderr)
