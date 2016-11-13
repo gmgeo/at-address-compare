@@ -25,6 +25,18 @@ def checkAbbreviation(name):
 			return True
 	return False
 
+def callOverpass(api, query):
+	'''Runs 'query' against the Overpass API and returns the response. Exits
+	   the program in case of an error.'''
+	try:
+		response = api.Get(query, responseformat='json')
+	except Exception as e:
+		msg = ('There was an error while querying Overpass API: {}. '
+		       'Exiting.'.format(type(e).__name__))
+		sys.exit(msg)
+
+	return response
+
 def main():
 	parser = argparse.ArgumentParser(description='Compares BEV address catalogue data with OSM address data.')
 	parser.add_argument('gov',
@@ -48,26 +60,30 @@ def main():
 		args.filter = int(args.filter)
 	except ValueError:
 		print('Trying to get GKZ for name from Overpass API...', file=sys.stderr)
+		query = '''
+		    relation["type"="boundary"]
+		            ["admin_level"="8"]
+		            ["name"="{}"]'''.format(args.filter)
+		response = callOverpass(api, query)
+
 		try:
-			response = api.Get('relation["type"="boundary"]["admin_level"="8"]["name"="' + args.filter + '"]', responseformat='json')
-			try:
-				args.filter = int(response['elements'][0]['tags']['ref:at:gkz'])
-				print('GKZ = {}'.format(args.filter), file=sys.stderr)
-			except (KeyError, IndexError, ValueError):
-				print('Could not match name to GKZ. Exiting.', file=sys.stderr)
-				sys.exit()
-		except Exception as e:
-			print('There was an error while querying Overpass API: ' + type(e).__name__ + '. Exiting.', file=sys.stderr)
-			sys.exit()
+			args.filter = int(response['elements'][0]['tags']['ref:at:gkz'])
+			print('GKZ = {}'.format(args.filter), file=sys.stderr)
+		except (KeyError, IndexError, ValueError):
+			sys.exit('Could not match name to GKZ. Exiting.')
 
 	print('Fetching data from Overpass API...', file=sys.stderr)
 
-	query = 'area["type"="boundary"]["admin_level"="8"]["ref:at:gkz"="' + str(args.filter) + '"]->.searchArea;(node["addr:housenumber"](area.searchArea);way["addr:housenumber"](area.searchArea););'
-	try:
-		response = api.Get(query, responseformat="json")
-	except Exception as e:
-		print('There was an error while querying Overpass API: ' + type(e).__name__ + '. Exiting.', file=sys.stderr)
-		sys.exit()
+	query = '''
+	    area["type"="boundary"]
+	        ["admin_level"="8"]
+	        ["ref:at:gkz"="{}"]->.searchArea;
+
+	    (
+	        node["addr:housenumber"](area.searchArea);
+	         way["addr:housenumber"](area.searchArea);
+	    );'''.format(args.filter)
+	response = callOverpass(api, query)
 
 	print('Processing data...', file=sys.stderr)
 
