@@ -51,9 +51,9 @@ def main():
 		try:
 			response = api.Get('relation["type"="boundary"]["admin_level"="8"]["name"="' + args.filter + '"]', responseformat='json')
 			try:
-				args.filter = response['elements'][0]['tags']['ref:at:gkz']
-				print('GKZ = ' + args.filter, file=sys.stderr)
-			except (KeyError, IndexError):
+				args.filter = int(response['elements'][0]['tags']['ref:at:gkz'])
+				print('GKZ = {}'.format(args.filter), file=sys.stderr)
+			except (KeyError, IndexError, ValueError):
 				print('Could not match name to GKZ. Exiting.', file=sys.stderr)
 				sys.exit()
 		except Exception as e:
