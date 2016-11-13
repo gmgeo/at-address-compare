@@ -6,6 +6,7 @@ import collections
 import datetime
 import overpass
 import pkg_resources
+import re
 import sys
 from string import Template
 
@@ -43,27 +44,134 @@ def processOverpassData(response):
 	Returns a set of (streetname, housenumber) tuples and a second set
 	containing the abbreviated steet names'''
 
+	def extract_street_housenumber(tags):
+		'''Helper function to extract the street (or the place) tag and
+		   the housenumber. Returns 'None' in case of an error.'''
+		street = tags.get('addr:street')
+		place  = tags.get('addr:place')
+		number = tags.get('addr:housenumber')
+
+		if (not (street or place)) or (not number):
+			return None
+
+		number = number.lower()
+
+		if street:
+			return (street, number)
+		return (place, number)
+
 	if not 'elements' in response:
 		return (set(), set())
 
-	osm = set()
-	abbrev = set()
+	# Sort out the items with an 'addr:interpolation' tag.
+	interpolations = []
+	others = []
+	ids = {}
 	for element in response['elements']:
+		ids[element['id']] = element
+		if 'addr:interpolation' in element['tags']:
+			interpolations.append(element)
+		else:
+			others.append(element)
+
+	# result set
+	osm = set()
+
+	#
+	# Process address interpolations
+	#
+
+	for i in interpolations:
+		if not i['type'] == 'way':
+			continue
+
+		print("Processing interpolation #{} ".format(i['id']), file=sys.stderr)
+
+		if not 'nodes' in i or len(i['nodes']) != 2:
+			print("doesn't have exactly two nodes", file=sys.stderr)
+			continue
+
+		id_node_from = i['nodes'][0]
+		id_node_to   = i['nodes'][1]
+
+		if not ((id_node_from in ids) and (id_node_to in ids)):
+			print("node IDs not in data set", file=sys.stderr)
+			continue
+
+		node_from = ids[id_node_from]
+		node_to   = ids[id_node_to]
+
+		street_number_from = extract_street_housenumber(node_from['tags'])
+		street_number_to   = extract_street_housenumber(node_to  ['tags'])
+
+		if (not street_number_from) or (not street_number_to):
+			print("from/to node doesn't contain a valid address", file=sys.stderr)
+			continue
+
+		(street, hn_from) = street_number_from
+		(_     , hn_to  ) = street_number_to
+
+		street = canonicalName(street)
+
+		ipl_type = i['tags']['addr:interpolation']
+		osm.update(interpolateAddresses(ipl_type, street, hn_from, hn_to))
+
+	#
+	# Process remaining addresses
+	#
+
+	abbrev = set()
+	for element in others:
 		item = element['tags']
-		if ('addr:place' in item or 'addr:street' in item) and \
-		    'addr:housenumber' in item:
-			if 'addr:street' in item:
-				street = item['addr:street']
-			else:
-				street = item['addr:place']
-			number = item['addr:housenumber'].lower()
+		street_number = extract_street_housenumber(element['tags'])
+		if not street_number:
+			continue
 
-			osm.add((canonicalName(street), number))
+		street, number = street_number
+		osm.add((canonicalName(street), number))
 
-			if checkAbbreviation(street):
-				abbrev.add(street)
+		if checkAbbreviation(street):
+			abbrev.add(street)
 
 	return (osm, abbrev)
+
+def interpolateAddresses(ipl_type, street, hn_from, hn_to):
+	'''Returns a set of interpolated addresses from 'hn_from' to 'hn_to'
+	   according to 'ipl_type'.'''
+	if ipl_type == 'alphabetic':
+		regex = '\s*(\d+)\s*([a-z])?\s*'
+		match_from = re.match(regex, hn_from)
+		if not match_from:
+			print('unable to parse first housenumber', file=sys.stderr)
+			return set()
+
+		regex = '\s*(\d+)\s*([a-z])\s*'
+		match_to = re.match(regex, hn_to)
+		if not match_to:
+			print('unable to parse second housenumber', file=sys.stderr)
+			return set()
+
+		if match_from.group(1) != match_to.group(1):
+			print("housenumbers don't match", file=sys.stderr)
+			return set()
+
+		number = match_from.group(1)
+
+		if match_from.group(2):
+			start = match_from.group(2)
+		else:
+			start = 'a'
+
+		end = match_to.group(2)
+
+		result = set()
+		for c in [chr(x) for x in range(ord(start), ord(end) + 1)]:
+			result.add((street, number + c))
+
+		return result
+	else:
+		print('interpolation type "{}" not implemented'.format(ipl), file=sys.stderr)
+		return set()
 
 def processGovData(filename, gkz):
 	'''Processes the BEV data.
@@ -127,6 +235,8 @@ def main():
 	    (
 	        node["addr:housenumber"](area.searchArea);
 	         way["addr:housenumber"](area.searchArea);
+
+	        way["addr:interpolation"](area.searchArea);
 	    );'''.format(gkz)
 	response = callOverpass(api, query)
 
