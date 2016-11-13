@@ -37,6 +37,52 @@ def callOverpass(api, query):
 
 	return response
 
+def processOverpassData(response):
+	'''Processes the data returned by the Overpass API.
+
+	Returns a set of (streetname, housenumber) tuples and a second set
+	containing the abbreviated steet names'''
+
+	if not 'elements' in response:
+		return (set(), set())
+
+	osm = set()
+	abbrev = set()
+	for element in response['elements']:
+		item = element['tags']
+		if ('addr:place' in item or 'addr:street' in item) and \
+		    'addr:housenumber' in item:
+			if 'addr:street' in item:
+				street = item['addr:street']
+			else:
+				street = item['addr:place']
+			number = item['addr:housenumber'].lower()
+
+			osm.add((canonicalName(street), number))
+
+			if checkAbbreviation(street):
+				abbrev.add(street)
+
+	return (osm, abbrev)
+
+def processGovData(filename, gkz):
+	'''Processes the BEV data.
+
+	Returns a set of (streetname, housenumber) tuples.'''
+
+	with open(filename) as f:
+		gov_input = list(csv.DictReader(f, delimiter=';'))
+
+		gov = set()
+		for item in gov_input:
+			if int(item['gkz']) == gkz:
+				street = unicode(item['strasse'], 'utf-8')
+				number = unicode(item['nummer'].lower(), 'utf-8')
+
+				gov.add((canonicalName(street), number))
+
+	return gov
+
 def main():
 	parser = argparse.ArgumentParser(description='Compares BEV address catalogue data with OSM address data.')
 	parser.add_argument('gov',
@@ -53,11 +99,10 @@ def main():
 	                    action='store_true')
 	args = parser.parse_args()
 
-	streets = {}
 	api = overpass.API(timeout=args.timeout)
 
 	try:
-		args.filter = int(args.filter)
+		gkz = int(args.filter)
 	except ValueError:
 		print('Trying to get GKZ for name from Overpass API...', file=sys.stderr)
 		query = '''
@@ -67,8 +112,8 @@ def main():
 		response = callOverpass(api, query)
 
 		try:
-			args.filter = int(response['elements'][0]['tags']['ref:at:gkz'])
-			print('GKZ = {}'.format(args.filter), file=sys.stderr)
+			gkz = int(response['elements'][0]['tags']['ref:at:gkz'])
+			print('GKZ = {}'.format(gkz), file=sys.stderr)
 		except (KeyError, IndexError, ValueError):
 			sys.exit('Could not match name to GKZ. Exiting.')
 
@@ -82,81 +127,59 @@ def main():
 	    (
 	        node["addr:housenumber"](area.searchArea);
 	         way["addr:housenumber"](area.searchArea);
-	    );'''.format(args.filter)
+	    );'''.format(gkz)
 	response = callOverpass(api, query)
 
 	print('Processing data...', file=sys.stderr)
 
-	with open(args.gov) as f1:
-		gov_input = list(csv.DictReader(f1, delimiter=';'))
+	(osm, osmabbrev) = processOverpassData(response)
+	gov = processGovData(args.gov, gkz)
 
-		osm = {}
-		if 'elements' in response and len(response['elements']) > 0:
-			for element in response['elements']:
-				item = element['tags']
-				if ('addr:place' in item or 'addr:street' in item) and 'addr:housenumber' in item:
-					item['number'] = item['addr:housenumber'].lower()
-					if 'addr:street' in item:
-						item['street'] = item['addr:street']
-					else:
-						item['street'] = item['addr:place']
+	streets = {}
 
-					street = canonicalName(item['street'])
-					if street not in streets:
-						streets[street] = {}
-						streets[street]['count'] = 0
-						streets[street]['notosm'] = []
-						streets[street]['notgov'] = []
-						streets[street]['abbrev'] = checkAbbreviation(item['street'])
+	#
+	# Add one item to 'streets' for every street that occurs in an address in
+	# the data. For items that appear in the OSM data, abbreviated street names
+	# are marked as such.
+	#
 
-					try:
-						del item['addr:street']
-						del item['addr:place']
-						del item['addr:housenumber']
-					except KeyError:
-						pass
-					osm[street + ' ' + item['number']] = item
+	osm_streetnames = set([s for (s, n) in osm])
+	gov_streetnames = set([s for (s, n) in gov])
+	all_streetnames = osm_streetnames | gov_streetnames
 
-		gov = {}
-		for item in gov_input:
-			if int(item['gkz']) == args.filter:
-				item['number'] = unicode(item['nummer'].lower(), 'utf-8')
-				item['street'] = unicode(item['strasse'], 'utf-8')
-				street = canonicalName(item['street'])
+	for streetname in all_streetnames:
+		streets[streetname] = {'notosm': [], 'notgov': [], 'abbrev': False}
+	for streetname in osmabbrev:
+		streets[streetname]['abbrev'] = True
 
-				if street not in streets:
-					streets[street] = {}
-					streets[street]['count'] = 0
-					streets[street]['notosm'] = []
-					streets[street]['notgov'] = []
-					streets[street]['abbrev'] = False
+	#
+	# For each address, check if it only appears in one of the data sets.
+	#
 
-				try:
-					del item['nummer']
-					del item['strasse']
-					del item['Gemeinde']
-					del item['plz']
-					del item['gkz']
-					del item['hausname']
-					del item['x']
-					del item['y']
-				except KeyError:
-					pass
-				gov[street + ' ' + item['number']] = item
+	osm_only = osm - gov
+	gov_only = gov - osm
 
-				streets[street]['count'] += 1
-				if street + ' ' + item['number'] not in osm:
-					streets[street]['notosm'].append(item['number'])
+	for s, n in osm_only:
+		streets[s]['notgov'].append(n)
+	for s, n in gov_only:
+		streets[s]['notosm'].append(n)
 
-		for key, value in osm.iteritems():
-			street = canonicalName(value['street'])
-			if key not in gov:
-				streets[street]['notgov'].append(value['number'])
+	#
+	# Calculate the total number of addresses in each street.
+	#
 
-		print('Sorting output...', file=sys.stderr)
-		streets = collections.OrderedDict(sorted(streets.items()))
-		writeOutput(streets, args.filter, args.html)
-		print('Done.', file=sys.stderr)
+	cnt_streetnames = collections.Counter([s for (s, n) in (osm | gov)])
+	for (streetname, count) in cnt_streetnames.iteritems():
+		streets[streetname]['count'] = count
+
+	#
+	# Generate output.
+	#
+
+	print('Sorting output...', file=sys.stderr)
+	streets = collections.OrderedDict(sorted(streets.items()))
+	writeOutput(streets, gkz, args.html)
+	print('Done.', file=sys.stderr)
 
 def writeOutput(streets, gkz, html):
 	if html == False:
