@@ -21,7 +21,7 @@ municipality level and needs the Gemeindekennzahl (GKZ, Austrian municipality
 
 Install Python 2 or 3 with package manager pip, then run
 
-`pip install ataddrcompare`
+`(sudo) pip install at-address-compare`
 
 ## Usage Example Villach (GKZ 20201)
 

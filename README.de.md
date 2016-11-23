@@ -20,7 +20,7 @@ Gemeindekennzahl (GKZ) oder mit dem Gemeindenamen (der zur GKZ aufgelöst wird).
 
 Installation von Python 2 oder 3 mit Package Manager pip, dann
 
-`pip install ataddrcompare`
+`(sudo) pip install at-address-compare`
 
 ## Einsatzbeispiel Villach (GKZ 20201)
 
