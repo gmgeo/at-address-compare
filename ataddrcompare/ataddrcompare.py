@@ -148,7 +148,7 @@ def main():
 	all_streetnames = osm_streetnames | gov_streetnames
 
 	for streetname in all_streetnames:
-		streets[streetname] = {'notosm': [], 'notgov': [], 'abbrev': False}
+		streets[streetname] = {'notosm': [], 'notgov': [], 'abbrev': False, 'count': 0}
 	for streetname in osmabbrev:
 		streets[streetname]['abbrev'] = True
 
@@ -168,7 +168,7 @@ def main():
 	# Calculate the total number of addresses in each street.
 	#
 
-	cnt_streetnames = collections.Counter([s for (s, n) in (osm | gov)])
+	cnt_streetnames = collections.Counter([s for (s, n) in (gov)])
 	for (streetname, count) in cnt_streetnames.iteritems():
 		streets[streetname]['count'] = count
 
@@ -203,6 +203,8 @@ def writeOutput(streets, gkz, html):
 		if data['count'] > 0:
 			countPercent = round(100 - (len(data['notosm']) / float(data['count'])) * 100, 2)
 			countStr = str(countPercent) + '%'
+		else:
+			countStr = '?'
 
 		if html == True:
 			detail += '<tr>'
@@ -210,7 +212,9 @@ def writeOutput(streets, gkz, html):
 			if data['abbrev'] == True:
 				detail += ' <a href="#abbrev"><sup>*</sup></a>'
 			detail += '</td><td class="'
-			if countPercent <= 20:
+			if data['count'] == 0:
+				detail += 'c0'
+			if data['count'] > 0 and countPercent <= 20:
 				detail += 'c20'
 			if countPercent > 20 and countPercent <= 40:
 				detail += 'c40'
@@ -224,8 +228,7 @@ def writeOutput(streets, gkz, html):
 			detail += '</tr>' + '\n'
 		else:
 			detail += street.encode('utf-8') + ': '
-			if data['count'] > 0:
-				detail += countStr + ' \n'
+			detail += countStr + ' \n'
 			detail += 'not in OSM: ' + ', '.join(data['notosm']).encode('utf-8') + '\n'
 			detail += 'not in GOV: ' + ', '.join(data['notgov']).encode('utf-8') + '\n'
 			if data['abbrev'] == True:
