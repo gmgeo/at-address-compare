@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
   name = 'at-address-compare',
   packages = ['ataddrcompare'],
-  version = '0.1.2',
+  version = '0.1.3',
   entry_points = {
     'console_scripts': ['ataddrcompare = ataddrcompare.ataddrcompare:main']
   },
