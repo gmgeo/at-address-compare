@@ -53,12 +53,14 @@ def processOverpassData(response):
 		if ('addr:place' in item or 'addr:street' in item) and \
 		    'addr:housenumber' in item:
 			if 'addr:street' in item:
-				street = item['addr:street']
+				street = item['addr:street'].strip()
 			else:
 				street = item['addr:place']
-			number = item['addr:housenumber'].lower()
+			number = item['addr:housenumber'].lower().strip()
 
-			osm.add((canonicalName(street), number))
+			# avoid adding empty streets and/or empty numbers
+			if len(street) > 0 and len(number) > 0:
+				osm.add((canonicalName(street), number))
 
 			if checkAbbreviation(street):
 				abbrev.add(street)
@@ -76,10 +78,12 @@ def processGovData(filename, gkz):
 		gov = set()
 		for item in gov_input:
 			if int(item['gkz']) == gkz:
-				street = unicode(item['strasse'], 'utf-8')
-				number = unicode(item['nummer'].lower(), 'utf-8')
+				street = unicode(item['strasse'].strip(), 'utf-8')
+				number = unicode(item['nummer'].lower().strip(), 'utf-8')
 
-				gov.add((canonicalName(street), number))
+				# avoid adding empty streets and/or empty numbers
+				if len(street) > 0 and len(number) > 0:
+					gov.add((canonicalName(street), number))
 
 	return gov
 
