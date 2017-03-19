@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import print_function
 
 import argparse
@@ -10,13 +12,16 @@ import sys
 from string import Template
 
 name_replace = {}
-name_replace['Doktor'] = 'Dr.'
-name_replace['Professor'] = 'Prof.'
-name_replace['Sankt'] = 'St.'
+name_replace[u'Doktor'] = u'Dr.'
+name_replace[u'Professor'] = u'Prof.'
+name_replace[u'Sankt'] = u'St.'
+name_replace[u'Straße'] = u'Str.'
+name_replace[u'-von-'] = u'-v.-'
+name_replace[u' von '] = u' v. '
 
 def canonicalName(name):
 	for key, value in name_replace.iteritems():
-		name = name.replace(key, value)
+		name = name.replace(value, key)
 	return name
 
 def checkAbbreviation(name):
@@ -63,7 +68,7 @@ def processOverpassData(response):
 				osm.add((canonicalName(street), number))
 
 			if checkAbbreviation(street):
-				abbrev.add(street)
+				abbrev.add(canonicalName(street))
 
 	return (osm, abbrev)
 
