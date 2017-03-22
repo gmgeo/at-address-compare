@@ -136,6 +136,7 @@ def main():
 	    (
 	        node["addr:housenumber"](area.searchArea);
 	         way["addr:housenumber"](area.searchArea);
+	    relation["addr:housenumber"](area.searchArea);
 	    );'''.format(gkz)
 	response = callOverpass(api, query)
 
